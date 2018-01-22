@@ -6,6 +6,7 @@ from config_models.admin import KeyedConfigurationModelAdmin
 from django import forms
 from django.contrib import admin
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from third_party_auth.provider import Registry
 
@@ -50,6 +51,13 @@ class SAMLProviderConfigForm(forms.ModelForm):
 class SAMLProviderConfigAdmin(KeyedConfigurationModelAdmin):
     """ Django Admin class for SAMLProviderConfig """
     form = SAMLProviderConfigForm
+    def delete_provider_configuration(self, request, queryset):
+        for obj in queryset:
+            parameters = {}
+            for index, field in enumerate(self.model.KEY_FIELDS):
+                parameters[field] = getattr(obj, self.model.KEY_FIELDS[index])
+            self.model.objects.filter(**parameters).delete()
+        self.message_user(request, _("Deleted the selected configuration(s)."))
 
     def get_list_display(self, request):
         """ Don't show every single field in the admin change list """
@@ -59,6 +67,22 @@ class SAMLProviderConfigAdmin(KeyedConfigurationModelAdmin):
         )
 
     list_display_links = None
+
+    def get_actions(self, request):
+        """
+        Get the actions.
+        """
+        actions = super(SAMLProviderConfigAdmin, self).get_actions(request)
+        action_delete = {
+            'delete_provider_configuration': (
+                SAMLProviderConfigAdmin.delete_provider_configuration,
+                'delete_provider_configuration',
+                _('Delete the selected configuration')
+            )
+        }
+        actions.update(action_delete)
+        return actions
+
 
     def name_with_update_link(self, instance):
         """
