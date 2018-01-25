@@ -104,11 +104,6 @@ case "$TEST_SUITE" in
         mkdir -p reports
 
         case "$SHARD" in
-            0)
-                echo "Finding pylint violations and storing in report..."
-                run_paver_quality run_pylint --system=pavelib || EXIT=1
-                ;;
-
             1)
                 echo "Finding pylint violations and storing in report..."
                 run_paver_quality run_pylint --system=common  || EXIT=1
