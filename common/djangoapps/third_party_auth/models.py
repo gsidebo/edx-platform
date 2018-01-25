@@ -359,6 +359,14 @@ class OAuth2ProviderConfig(ProviderConfig):
         raise KeyError
 
 
+def active_saml_configurations_filter():
+    """
+    Returns a mapping to be used for the SAMLProviderConfig to limit the SAMLConfiguration choices to the current set.
+    """
+    query_set = SAMLConfiguration.objects.current_set()
+    return {'id__in': query_set.values_list('id', flat=True)}
+
+
 class SAMLProviderConfig(ProviderConfig):
     """
     Configuration Entry for a SAML/Shibboleth provider.
@@ -433,6 +441,7 @@ class SAMLProviderConfig(ProviderConfig):
     saml_configuration = models.ForeignKey(
         'SAMLConfiguration',
         on_delete=models.SET_NULL,
+        limit_choices_to=active_saml_configurations_filter,
         null=True,
         blank=True,
     )
