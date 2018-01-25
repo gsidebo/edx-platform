@@ -6,6 +6,7 @@ from config_models.admin import KeyedConfigurationModelAdmin
 from django import forms
 from django.contrib import admin
 from django.core.urlresolvers import reverse
+from django.db import DatabaseError, transaction
 from django.utils.translation import ugettext_lazy as _
 
 from third_party_auth.provider import Registry
@@ -51,12 +52,18 @@ class SAMLProviderConfigForm(forms.ModelForm):
 class SAMLProviderConfigAdmin(KeyedConfigurationModelAdmin):
     """ Django Admin class for SAMLProviderConfig """
     form = SAMLProviderConfigForm
+
+    def get_queryset(self, request):
+        """
+        Filter the queryset to exclude the archived records.
+        """
+        queryset = super(SAMLProviderConfigAdmin, self).get_queryset(request).exclude(archived=True)
+        return queryset
+
     def delete_provider_configuration(self, request, queryset):
-        for obj in queryset:
-            parameters = {}
-            for index, field in enumerate(self.model.KEY_FIELDS):
-                parameters[field] = getattr(obj, self.model.KEY_FIELDS[index])
-            self.model.objects.filter(**parameters).delete()
+        with transaction.atomic():
+            for obj in queryset:
+                self.model.objects.filter(pk=obj.pk).update(archived=True)
         self.message_user(request, _("Deleted the selected configuration(s)."))
 
     def get_list_display(self, request):
